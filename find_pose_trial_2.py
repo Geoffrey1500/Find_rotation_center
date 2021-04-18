@@ -5,6 +5,8 @@ import glob
 with np.load('sony_16mm.npz') as X:
     mtx, dist, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
 
+print(dist)
+print(mtx)
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
 objp = np.zeros((11*8, 3), np.float32)
@@ -20,7 +22,7 @@ def draw(img, corners, imgpts):
 
 
 axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)*30
-print(axis)
+# print(axis)
 
 
 for fname in glob.glob('imgs/pose_test_2/*.jpg'):
@@ -34,15 +36,23 @@ for fname in glob.glob('imgs/pose_test_2/*.jpg'):
 
         rotation_matrix, jacobian = cv.Rodrigues(rvecs)
         R_and_T = np.vstack((np.hstack((rotation_matrix, tvecs)), np.array([[0, 0, 0, 1]])))
-
         projection_mode = np.array([[1, 0, 0, 0],
                                     [0, 1, 0, 0],
                                     [0, 0, 1, 0]])
 
-        # img_cor =
+        # R_and_T = np.hstack((rotation_matrix, tvecs))
 
+        # print(mtx)
+        img_cor = np.linalg.multi_dot([mtx, projection_mode, R_and_T, np.array([[150], [120], [0], [1]])])
+
+        original = np.float32([[150, 120, 0]])
+        original_img, jac = cv.projectPoints(original, rvecs, tvecs, mtx, dist)
+
+        print(original_img)
+        print(img_cor / img_cor[-1])
         # project 3D points to image plane
         imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, mtx, dist)
+        cv.circle(img, (original_img.flatten()[0], original_img.flatten()[1]), 63, (0,0,255), -1)
         img = draw(img, corners2, imgpts)
         cv.namedWindow("img", 0)
         cv.resizeWindow("img", 1080, 720)
