@@ -13,6 +13,7 @@ objp[:, :2] = np.mgrid[0:11, 0:8].T.reshape(-1, 2)*30
 
 def draw(img, corners, imgpts):
     corner = tuple(corners[0].ravel())
+    # corner = (0, 0)
     img = cv.line(img, corner, tuple(imgpts[0].ravel()), (255,0,0), 5)
     img = cv.line(img, corner, tuple(imgpts[1].ravel()), (0,255,0), 5)
     img = cv.line(img, corner, tuple(imgpts[2].ravel()), (0,0,255), 5)
