@@ -44,12 +44,16 @@ for fname in glob.glob('imgs/pose_test_2/*.jpg'):
 
         # print(mtx)
         img_cor = np.linalg.multi_dot([mtx, projection_mode, R_and_T, np.array([[150], [120], [0], [1]])])
+        img_cor = img_cor / img_cor[-1]
+
+        img_cor_undistort = cv.undistortPoints(img_cor[0:-1, :], mtx, dist, None, mtx)
 
         original = np.float32([[150, 120, 0]])
         original_img, jac = cv.projectPoints(original, rvecs, tvecs, mtx, dist)
 
-        print(original_img)
-        print(img_cor / img_cor[-1])
+        print(original_img.flatten())
+        print(img_cor.flatten())
+        print(img_cor_undistort.flatten())
         # project 3D points to image plane
         imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, mtx, dist)
         cv.circle(img, (original_img.flatten()[0], original_img.flatten()[1]), 63, (0,0,255), -1)
