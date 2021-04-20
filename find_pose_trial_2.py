@@ -29,7 +29,7 @@ axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)*30
 
 cor_set = []
 
-for fname in glob.glob('imgs/pose_test_2/*.jpg'):
+for fname in glob.glob('imgs/4_19_2/*.jpg'):
     img = cv.imread(fname)
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
     ret, corners = cv.findChessboardCorners(gray, (11, 8), None)
@@ -66,7 +66,7 @@ for fname in glob.glob('imgs/pose_test_2/*.jpg'):
         cv.circle(img, (int(original_img.flatten()[0]), int(original_img.flatten()[1])), 10, (0, 0, 255), -1)
         img = draw(img, corners2, imgpts)
         cv.namedWindow("img", 0)
-        cv.resizeWindow("img", 1080, 720)
+        cv.resizeWindow("img", 720, 1080)
         cv.imshow('img', img)
         cv.waitKey(0)
         cv.destroyAllWindows()
