@@ -44,7 +44,7 @@ objp[:, :2] = np.mgrid[0:11, 0:8].T.reshape(-1, 2)*30
 
 cor_set = []
 
-for fname in glob.glob('imgs/4_19_2/*.jpg'):
+for fname in glob.glob('imgs/4_19_1/*.jpg'):
     img = cv.imread(fname)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     ret, corners = cv.findChessboardCorners(gray, (11, 8), None)
@@ -56,6 +56,7 @@ for fname in glob.glob('imgs/4_19_2/*.jpg'):
         ret, rvecs, tvecs = cv.solvePnP(objp, corners2, mtx, dist)
 
         cor_set.append(tvecs.flatten().tolist())
+
 
 cor_set_array = np.array(cor_set)
 print(cor_set)
@@ -126,9 +127,6 @@ ax.set_ylabel('Y', fontdict={'size': 15, 'color': 'red'})
 ax.set_xlabel('X', fontdict={'size': 15, 'color': 'red'})
 # plt.show()
 
-print(plane)
-print(plane.vector)
-
 a, b = list(plane.vector), [0, 1, 0]
 q_before, q_after = rotation(a, b)
 data_tra = np.hstack((np.zeros((point_projected_array.shape[0], 1)), point_projected_array))
@@ -138,99 +136,48 @@ data_final = np.delete(data_rota.T, 0, axis=1)
 print(data_final)
 
 
-import numpy as np
-from scipy import optimize
-from matplotlib import pyplot as plt, cm, colors
+def circleFit(points):
+    # generates d
+    d = []
+    for p in points:
+        d.append(np.linalg.norm(p) ** 2)
+    d = np.array(d)
+
+    # generates B
+    B = []
+    for p in points:
+        v = p + [1]
+        B.append(v)
+    B = np.array(B)
+
+    tB = B.T
+    M = tB.dot(B)
+    invM = np.linalg.inv(M)
+
+    td = d.T
+    sd = td.dot(B)
+    y = invM.dot(sd)
+
+    center = [y[0] / 2, y[1] / 2]
+    radius = np.math.sqrt(y[2] + np.linalg.norm(center) ** 2)
+
+    return center, radius
 
 
-def calc_R(x,y, xc, yc):
-    """ calculate the distance of each 2D points from the center (xc, yc) """
-    return np.sqrt((x-xc)**2 + (y-yc)**2)
+points = np.delete(data_final, 1, axis=1).tolist()
+print(points)
+c, r = circleFit(points)
+
+y = np.average(data_final[:, 1])
+print(c, r, y)
+
+ax.scatter(c[0], y, c[1])
+
+fig_2 = plt.figure()
+
+plt.scatter(data_final[:, 0], data_final[:, -1])
+plt.scatter(c[0], y, c[1])
+plt.gca().set_aspect('equal')
+plt.show()
 
 
-def f(c, x, y):
-    """ calculate the algebraic distance between the data points and the mean circle centered at c=(xc, yc) """
-    Ri = calc_R(x, y, *c)
-    return Ri - Ri.mean()
-
-
-def leastsq_circle(x,y):
-    # coordinates of the barycenter
-    x_m = np.mean(x)
-    y_m = np.mean(y)
-    center_estimate = x_m, y_m
-    center, ier = optimize.leastsq(f, center_estimate, args=(x,y))
-    xc, yc = center
-    Ri       = calc_R(x, y, *center)
-    R        = Ri.mean()
-    residu   = np.sum((Ri - R)**2)
-    return xc, yc, R, residu
-
-
-def plot_data_circle(x,y, xc, yc, R):
-    f = plt.figure( facecolor='white')  #figsize=(7, 5.4), dpi=72,
-    plt.axis('equal')
-
-    theta_fit = np.linspace(-np.pi, np.pi, 180)
-
-    x_fit = xc + R*np.cos(theta_fit)
-    y_fit = yc + R*np.sin(theta_fit)
-    plt.plot(x_fit, y_fit, 'b-' , label="fitted circle", lw=2)
-    plt.plot([xc], [yc], 'bD', mec='y', mew=1)
-    plt.xlabel('x')
-    plt.ylabel('y')
-    # plot data
-    plt.plot(x, y, 'r-.', label='data', mew=1)
-
-    plt.legend(loc='best',labelspacing=0.1 )
-    plt.grid()
-    plt.title('Least Squares Circle')
-
-
-x_circle = data_final[:, 0]
-y_circle = data_final[:, -1]
-
-x_circle_mean = x_circle.mean()
-y_circle_mean = y_circle.mean()
-print(x_circle_mean, y_circle_mean)
-
-print((x_circle-x_circle_mean)**2 + (y_circle-y_circle_mean)**2)
-
-
-R = calc_R(x_circle, y_circle, x_circle_mean, y_circle_mean)
-print(R)
-
-
-def residuals(p):
-    a, b, r = p
-    return r ** 2 - (y_circle - b) ** 2 - (x_circle - a) ** 2
-
-
-result = optimize.leastsq(residuals, [1, 1, 1])
-a, b, r = result[0]
-print("a=", a, "b=", b, "r=", r)
-
-method_2 = "leastsq"
-
-def calc_R(xc, yc):
-    """ calculate the distance of each 2D points from the center (xc, yc) """
-    return np.sqrt((x_circle-xc)**2 + (y_circle-yc)**2)
-
-def f_2(c):
-    """ calculate the algebraic distance between the data points and the mean circle centered at c=(xc, yc) """
-    Ri = calc_R(*c)
-    return Ri - Ri.mean()
-
-center_estimate = x_circle_mean, y_circle_mean
-center_2, ier = optimize.leastsq(f_2, center_estimate)
-
-xc_2, yc_2 = center_2
-Ri_2       = calc_R(*center_2)
-R_2        = Ri_2.mean()
-residu_2   = sum((Ri_2 - R_2)**2)
-print(xc_2, yc_2)
-print(residu_2)
-
-ax.scatter(xc_2, -39.5, yc_2)
-
-# plt.show()
